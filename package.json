@@ -1,0 +1,8 @@
+{
+  "name": "cuentometro",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Copiloto de cuentas para Key Account Managers: salud de cuenta + plan de acción con Claude",
+  "engines": { "node": ">=18" }
+}

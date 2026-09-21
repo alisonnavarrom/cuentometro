@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cuentómetro — Copiloto de cuentas para KAM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #F6F3EC;
+    --paper-line: #E4DFD1;
+    --ink: #17243D;
+    --ink-soft: #4B5468;
+    --ledger-green: #2E6B4C;
+    --ledger-green-soft: #E4EEE5;
+    --amber: #A9721F;
+    --amber-soft: #F3E7D1;
+    --rust: #A8442C;
+    --rust-soft: #F2E1DA;
+    --card: #FFFFFE;
+    --border: #D8D2C1;
+    --shadow: rgba(23, 36, 61, 0.08);
+    --accent-line: #17243D;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #14181F;
+      --paper-line: #232933;
+      --ink: #ECE7DA;
+      --ink-soft: #A7A99C;
+      --ledger-green: #6FBE94;
+      --ledger-green-soft: #1B2A22;
+      --amber: #E0AE5C;
+      --amber-soft: #2C2418;
+      --rust: #E28770;
+      --rust-soft: #2E1D18;
+      --card: #1B2028;
+      --border: #333A46;
+      --shadow: rgba(0, 0, 0, 0.35);
+      --accent-line: #ECE7DA;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #14181F;
+    --paper-line: #23293380;
+    --ink: #ECE7DA;
+    --ink-soft: #A7A99C;
+    --ledger-green: #6FBE94;
+    --ledger-green-soft: #1B2A22;
+    --amber: #E0AE5C;
+    --amber-soft: #2C2418;
+    --rust: #E28770;
+    --rust-soft: #2E1D18;
+    --card: #1B2028;
+    --border: #333A46;
+    --shadow: rgba(0, 0, 0, 0.35);
+    --accent-line: #ECE7DA;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    background-image: repeating-linear-gradient(
+      var(--paper) 0px, var(--paper) 27px, var(--paper-line) 28px
+    );
+    color: var(--ink);
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  header.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    border-bottom: 2px solid var(--accent-line);
+    padding-bottom: 18px;
+    margin-bottom: 34px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    color: var(--ink-soft);
+  }
+  h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-weight: 700;
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 4px 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle {
+    color: var(--ink-soft);
+    font-size: 15px;
+    max-width: 46ch;
+  }
+  .ref {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    text-align: right;
+  }
+
+  .examples {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .examples span {
+    font-size: 12px;
+    color: var(--ink-soft);
+    align-self: center;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--ink);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.1s ease;
+  }
+  .chip:hover { border-color: var(--ink); }
+  .chip:active { transform: translateY(1px); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 880px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow: 0 1px 2px var(--shadow);
+    padding: 26px 28px;
+  }
+
+  .card h2 {
+    font-family: 'Source Serif 4', serif;
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0 0 18px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .field { margin-bottom: 16px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .field input[type="text"],
+  .field input[type="number"],
+  .field select,
+  .field textarea {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-size: 14.5px;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    border-bottom: 1.5px solid var(--border);
+    padding: 7px 2px;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-bottom-color: var(--ledger-green);
+  }
+  .field textarea { resize: vertical; min-height: 54px; font-family: 'Inter', sans-serif; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  fieldset {
+    border: none;
+    padding: 0;
+    margin: 0 0 16px;
+  }
+  fieldset legend {
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 0;
+  }
+  .checks { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+  .checks label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13.5px; color: var(--ink); cursor: pointer;
+  }
+  .checks input { accent-color: var(--ledger-green); }
+
+  /* Right panel: score */
+  .score-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 4px; }
+  .score-num {
+    font-family: 'Source Serif 4', serif;
+    font-size: 64px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .score-of { font-family: 'IBM Plex Mono', monospace; color: var(--ink-soft); font-size: 14px; }
+  .tier-badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 3px;
+    margin-top: 8px;
+    margin-bottom: 20px;
+  }
+  .tier-risk { background: var(--rust-soft); color: var(--rust); }
+  .tier-stable { background: var(--amber-soft); color: var(--amber); }
+  .tier-healthy { background: var(--ledger-green-soft); color: var(--ledger-green); }
+
+  .factor { margin-bottom: 12px; }
+  .factor-top {
+    display: flex; justify-content: space-between;
+    font-size: 13px; margin-bottom: 4px;
+  }
+  .factor-top .val { font-family: 'IBM Plex Mono', monospace; color: var(--ink-soft); }
+  .bar-track {
+    height: 6px; background: var(--paper-line); border-radius: 3px; overflow: hidden;
+  }
+  .bar-fill { height: 100%; background: var(--ink); border-radius: 3px; transition: width 0.4s ease; }
+
+  .gen-btn {
+    margin-top: 22px;
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 14.5px;
+    padding: 13px 16px;
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+  .gen-btn:hover { opacity: 0.88; }
+  .gen-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .plan {
+    margin-top: 22px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+  .plan h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 0 0 8px;
+    text-transform: none;
+  }
+  .plan ol { margin: 0 0 20px; padding-left: 20px; }
+  .plan li { margin-bottom: 8px; font-size: 14.5px; }
+  .plan p { font-size: 14.5px; margin: 0 0 20px; white-space: pre-wrap; }
+  .plan .note {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  .plan-empty {
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    font-style: italic;
+    margin-top: 22px;
+    border-top: 1px solid var(--border);
+    padding-top: 18px;
+  }
+
+  footer.foot {
+    margin-top: 40px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <div class="brand">CUENTÓMETRO · panel de salud de cuenta</div>
+      <h1>Copiloto de cuentas para KAM</h1>
+      <div class="subtitle">Convierte señales de uso, soporte y adopción en una puntuación de salud y un plan de acción, para priorizar retención y expansión en la cartera.</div>
+    </div>
+    <div class="ref">Prototipo para pymes LATAM<br><a href="https://github.com/" id="repo-link" style="color:inherit">ver código</a></div>
+  </header>
+
+  <div class="examples">
+    <span>Cargar ejemplo:</span>
+    <button class="chip" data-ex="0">Ferretería Don Luis · MX</button>
+    <button class="chip" data-ex="1">Contadores &amp; Asoc. · CO</button>
+    <button class="chip" data-ex="2">Boutique Aurora · PE</button>
+  </div>
+
+  <div class="grid">
+
+    <div class="card">
+      <h2>Datos de la cuenta</h2>
+
+      <div class="row2">
+        <div class="field">
+          <label for="nombre">Cliente</label>
+          <input type="text" id="nombre" value="Ferretería Don Luis">
+        </div>
+        <div class="field">
+          <label for="pais">País</label>
+          <select id="pais">
+            <option>Colombia</option>
+            <option selected>México</option>
+            <option>Perú</option>
+            <option>Argentina</option>
+            <option>Costa Rica</option>
+            <option>España</option>
+            <option>Panamá</option>
+            <option>República Dominicana</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="plan">Plan</label>
+          <select id="plan">
+            <option>Emprendedor</option>
+            <option selected>Profesional</option>
+            <option>Contador / Enterprise</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="mrr">Valor mensual (USD)</label>
+          <input type="number" id="mrr" value="42" min="0">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="antiguedad">Antigüedad (meses)</label>
+          <input type="number" id="antiguedad" value="7" min="0">
+        </div>
+        <div class="field">
+          <label for="renovacion">Días para renovación</label>
+          <input type="number" id="renovacion" value="24" min="0">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="uso">Frecuencia de uso</label>
+          <select id="uso">
+            <option value="diario">Diario</option>
+            <option value="semanal" selected>Semanal</option>
+            <option value="quincenal">Quincenal</option>
+            <option value="raro">Rara vez</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="nps">Satisfacción reciente (0–10)</label>
+          <input type="number" id="nps" value="5" min="0" max="10">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="tickets">Tickets de soporte abiertos</label>
+          <input type="number" id="tickets" value="3" min="0">
+        </div>
+        <div class="field">
+          <label for="severidad">Severidad de los casos</label>
+          <select id="severidad">
+            <option value="ninguna">Ninguna</option>
+            <option value="baja">Baja</option>
+            <option value="media" selected>Media</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+      </div>
+
+      <fieldset>
+        <legend>Módulos adoptados</legend>
+        <div class="checks">
+          <label><input type="checkbox" value="Facturación electrónica" checked> Facturación electrónica</label>
+          <label><input type="checkbox" value="Contabilidad"> Contabilidad</label>
+          <label><input type="checkbox" value="POS"> POS</label>
+          <label><input type="checkbox" value="Nómina electrónica"> Nómina electrónica</label>
+          <label><input type="checkbox" value="Inventario / Tienda online"> Inventario / Tienda online</label>
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="notas">Notas del último contacto</label>
+        <textarea id="notas">El dueño mencionó que su contador externo se queja de tener que exportar reportes manualmente cada mes.</textarea>
+      </div>
+    </div>
+
+    <div class="card" id="right-card">
+      <h2>Salud de la cuenta</h2>
+      <div class="score-head">
+        <div class="score-num" id="score-num">—</div>
+        <div class="score-of">/ 100</div>
+      </div>
+      <div id="tier-badge" class="tier-badge">calculando…</div>
+
+      <div id="factors"></div>
+
+      <button class="gen-btn" id="gen-btn">Generar plan de acción con IA</button>
+
+      <div id="plan-area" class="plan-empty">El plan de acción —próximos pasos, guion de llamada y oportunidad de expansión— aparecerá aquí, generado a partir de los datos de la izquierda.</div>
+    </div>
+
+  </div>
+
+  <footer class="foot">La puntuación se calcula localmente con reglas transparentes · el plan de acción se genera con Claude (API de Anthropic) a partir de esos datos</footer>
+</div>
+
+<script>
+const EXAMPLES = [
+  {
+    nombre: "Ferretería Don Luis", pais: "México", plan: "Profesional", mrr: 42,
+    antiguedad: 7, renovacion: 24, uso: "semanal", nps: 5, tickets: 3, severidad: "media",
+    modulos: ["Facturación electrónica"],
+    notas: "El dueño mencionó que su contador externo se queja de tener que exportar reportes manualmente cada mes."
+  },
+  {
+    nombre: "Contadores & Asociados", pais: "Colombia", plan: "Contador / Enterprise", mrr: 96,
+    antiguedad: 22, renovacion: 58, uso: "diario", nps: 9, tickets: 0, severidad: "ninguna",
+    modulos: ["Facturación electrónica", "Contabilidad", "Nómina electrónica"],
+    notas: "Gestionan 14 empresas cliente desde la cuenta. Preguntaron si Alegra soporta más usuarios por firma."
+  },
+  {
+    nombre: "Boutique Aurora", pais: "Perú", plan: "Emprendedor", mrr: 18,
+    antiguedad: 2, renovacion: 9, uso: "raro", nps: 3, tickets: 5, severidad: "alta",
+    modulos: [],
+    notas: "No completó la migración de su inventario. Dos tickets de soporte sin resolver por más de 5 días."
+  }
+];
+
+const els = {
+  nombre: document.getElementById('nombre'),
+  pais: document.getElementById('pais'),
+  plan: document.getElementById('plan'),
+  mrr: document.getElementById('mrr'),
+  antiguedad: document.getElementById('antiguedad'),
+  renovacion: document.getElementById('renovacion'),
+  uso: document.getElementById('uso'),
+  nps: document.getElementById('nps'),
+  tickets: document.getElementById('tickets'),
+  severidad: document.getElementById('severidad'),
+  notas: document.getElementById('notas'),
+  checks: Array.from(document.querySelectorAll('.checks input[type=checkbox]')),
+  scoreNum: document.getElementById('score-num'),
+  tierBadge: document.getElementById('tier-badge'),
+  factors: document.getElementById('factors'),
+  genBtn: document.getElementById('gen-btn'),
+  planArea: document.getElementById('plan-area'),
+};
+
+function getModulos() {
+  return els.checks.filter(c => c.checked).map(c => c.value);
+}
+
+function setModulos(list) {
+  els.checks.forEach(c => c.checked = list.includes(c.value));
+}
+
+function loadExample(idx) {
+  const ex = EXAMPLES[idx];
+  els.nombre.value = ex.nombre;
+  els.pais.value = ex.pais;
+  els.plan.value = ex.plan;
+  els.mrr.value = ex.mrr;
+  els.antiguedad.value = ex.antiguedad;
+  els.renovacion.value = ex.renovacion;
+  els.uso.value = ex.uso;
+  els.nps.value = ex.nps;
+  els.tickets.value = ex.tickets;
+  els.severidad.value = ex.severidad;
+  els.notas.value = ex.notas;
+  setModulos(ex.modulos);
+  els.planArea.className = 'plan-empty';
+  els.planArea.textContent = 'El plan de acción —próximos pasos, guion de llamada y oportunidad de expansión— aparecerá aquí, generado a partir de los datos de la izquierda.';
+  recalc();
+}
+
+document.querySelectorAll('.chip').forEach(btn => {
+  btn.addEventListener('click', () => loadExample(Number(btn.dataset.ex)));
+});
+
+const USAGE_SCORE = { diario: 100, semanal: 75, quincenal: 45, raro: 15 };
+const SEVERITY_PENALTY = { ninguna: 0, baja: 5, media: 12, alta: 22 };
+
+function computeHealth() {
+  const uso = els.uso.value;
+  const nps = Number(els.nps.value) || 0;
+  const tickets = Number(els.tickets.value) || 0;
+  const severidad = els.severidad.value;
+  const modulos = getModulos();
+  const diasRenov = Number(els.renovacion.value) || 0;
+
+  const usageScore = USAGE_SCORE[uso] ?? 50;
+  const npsScore = Math.max(0, Math.min(100, nps * 10));
+  const supportScore = Math.max(0, 100 - tickets * 12 - SEVERITY_PENALTY[severidad]);
+  const modulesScore = Math.min(100, (modulos.length / 5) * 100);
+  const renewalScore = diasRenov > 90 ? 100 : diasRenov > 30 ? 70 : diasRenov > 10 ? 45 : 25;
+
+  let weighted =
+    usageScore * 0.30 +
+    npsScore * 0.25 +
+    supportScore * 0.20 +
+    modulesScore * 0.15 +
+    renewalScore * 0.10;
+
+  // Penalización combinada: renovación cercana + poco uso = riesgo extra de no renovación
+  if (diasRenov <= 30 && usageScore < 60) weighted -= 8;
+
+  const score = Math.max(0, Math.min(100, Math.round(weighted)));
+
+  let tier, tierClass;
+  if (score <= 40) { tier = 'Alto riesgo de no renovación'; tierClass = 'tier-risk'; }
+  else if (score <= 70) { tier = 'Estable — requiere atención'; tierClass = 'tier-stable'; }
+  else { tier = 'Saludable — oportunidad de expansión'; tierClass = 'tier-healthy'; }
+
+  return {
+    score, tier, tierClass,
+    factors: [
+      { label: 'Uso de la plataforma', value: usageScore },
+      { label: 'Satisfacción (NPS)', value: npsScore },
+      { label: 'Soporte / incidencias', value: supportScore },
+      { label: 'Adopción de módulos', value: modulesScore },
+      { label: 'Proximidad de renovación', value: renewalScore },
+    ]
+  };
+}
+
+function recalc() {
+  const h = computeHealth();
+  els.scoreNum.textContent = h.score;
+  els.tierBadge.textContent = h.tier;
+  els.tierBadge.className = 'tier-badge ' + h.tierClass;
+  els.factors.innerHTML = h.factors.map(f => `
+    <div class="factor">
+      <div class="factor-top"><span>${f.label}</span><span class="val">${Math.round(f.value)}</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${f.value}%"></div></div>
+    </div>
+  `).join('');
+  return h;
+}
+
+[els.pais, els.plan, els.mrr, els.antiguedad, els.renovacion, els.uso, els.nps, els.tickets, els.severidad]
+  .forEach(el => el.addEventListener('input', recalc));
+els.checks.forEach(c => c.addEventListener('change', recalc));
+
+recalc();
+
+// ---- AI action plan ----
+// La página llama a /api/plan (función serverless en Vercel), que guarda la API key
+// de Anthropic en el servidor. Si la API no responde y la cuenta es uno de los
+// ejemplos sin modificar, se muestra un plan de ejemplo precargado, marcado como tal.
+
+let lastExample = null;      // índice del ejemplo cargado
+let exampleDirty = false;    // si el usuario cambió algún dato después de cargarlo
+
+document.querySelectorAll('.chip').forEach(btn => {
+  btn.addEventListener('click', () => { lastExample = Number(btn.dataset.ex); exampleDirty = false; });
+});
+document.querySelectorAll('input, select, textarea').forEach(el => {
+  el.addEventListener('input', () => { exampleDirty = true; });
+  el.addEventListener('change', () => { exampleDirty = true; });
+});
+
+function accountSnapshot(h) {
+  return {
+    cliente: els.nombre.value,
+    pais: els.pais.value,
+    plan: els.plan.value,
+    valorMensualUSD: Number(els.mrr.value) || 0,
+    antiguedadMeses: Number(els.antiguedad.value) || 0,
+    diasParaRenovacion: Number(els.renovacion.value) || 0,
+    frecuenciaUso: els.uso.value,
+    nps: Number(els.nps.value) || 0,
+    ticketsAbiertos: Number(els.tickets.value) || 0,
+    severidadCasos: els.severidad.value,
+    modulosAdoptados: getModulos(),
+    notasUltimoContacto: els.notas.value,
+    puntuacionSalud: h.score,
+    nivel: h.tier,
+  };
+}
+
+const FALLBACK_PLANS = [
+  {
+    acciones: [
+      "Llamar esta semana al dueño de Ferretería Don Luis para cerrar los 3 tickets abiertos antes de la renovación en 24 días; coordinar con soporte un responsable y fecha por caso.",
+      "Agendar una sesión de 30 minutos con su contador externo para mostrarle los reportes contables que puede descargar sin exportar a mano cada mes.",
+      "Proponer activar el módulo de Contabilidad como solución directa a la queja del contador, con acompañamiento en la configuración inicial."
+    ],
+    guion: "Hola, don Luis, le habla Alison de Alegra. Vi que tiene tres casos de soporte abiertos y quiero asegurarme de que queden resueltos esta semana; ya los estoy siguiendo personalmente. También me contaron que su contador pierde tiempo exportando reportes cada mes. Eso tiene solución dentro de Alegra, y me gustaría mostrárselo a los dos en una llamada corta. ¿Le queda bien el jueves en la mañana?",
+    oportunidad: "La cuenta solo usa facturación electrónica y su contador externo sufre con reportes manuales. El módulo de Contabilidad resuelve ese dolor concreto y convierte al contador en aliado de la renovación. Si la ferretería maneja stock amplio, Inventario es el siguiente paso natural."
+  },
+  {
+    acciones: [
+      "Preparar una propuesta de usuarios adicionales para Contadores & Asociados, respondiendo a su pregunta sobre más usuarios por firma, con precio por volumen para sus 14 empresas cliente.",
+      "Proponerles un acuerdo de referidos: sus empresas cliente que aún no usan Alegra podrían migrar con acompañamiento y un beneficio para la firma.",
+      "Agendar una revisión trimestral para medir horas ahorradas con Contabilidad y Nómina, y usar ese dato como caso de éxito."
+    ],
+    guion: "Hola, soy Alison de Alegra. Primero, gracias: su nivel de satisfacción es de los más altos de mi cartera. Me quedé con su pregunta sobre más usuarios por firma y ya tengo una propuesta pensada para el volumen que manejan con sus 14 empresas. Además, quería explorar con ustedes cómo podríamos apoyar a sus clientes que todavía no están en Alegra. ¿Tienen 30 minutos la próxima semana?",
+    oportunidad: "Firma contable sana, uso diario y NPS de 9, con 14 empresas gestionadas. La expansión está en usuarios adicionales y en convertir a la firma en canal: cada cliente suyo que aún no use Alegra es una cuenta potencial que llega con el contador ya convencido."
+  },
+  {
+    acciones: [
+      "Contactar hoy a Boutique Aurora y escalar los dos tickets sin resolver por más de 5 días; confirmar solución antes de la renovación en 9 días.",
+      "Ofrecer una sesión guiada para completar la migración del inventario, que es el bloqueo que impide que usen la plataforma.",
+      "No proponer venta adicional por ahora: el objetivo es que la cuenta vea valor antes de renovar y posponer la expansión 60 días."
+    ],
+    guion: "Hola, te habla Alison de Alegra. Vi que tienes dos casos abiertos hace varios días y te pido disculpas por la demora; ya los tomé personalmente y te confirmo la solución esta semana. También vi que la carga de tu inventario quedó a medias. Si te parece, lo terminamos juntas en una videollamada de 40 minutos para que puedas empezar a vender con todo listo. ¿Qué día te funciona?",
+    oportunidad: "La prioridad es retención, no venta. Una vez completado el inventario, el siguiente paso natural para una boutique es POS o Tienda online, pero conviene proponerlo solo cuando la cuenta use la plataforma con regularidad y tenga los tickets resueltos."
+  }
+];
+
+els.genBtn.addEventListener('click', async () => {
+  const h = recalc();
+  els.genBtn.disabled = true;
+  els.genBtn.textContent = 'Generando…';
+  els.planArea.className = 'plan-empty';
+  els.planArea.textContent = 'Analizando la cuenta y redactando el plan…';
+
+  try {
+    const resp = await fetch('/api/plan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cuenta: accountSnapshot(h) })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok || !data.plan) throw new Error(data.error || ('http_' + resp.status));
+    renderPlan(data.plan, 'Generado en vivo con ' + (data.model || 'Claude') + ' (API de Anthropic) — revisar antes de usar con el cliente.');
+  } catch (err) {
+    if (lastExample !== null && !exampleDirty) {
+      renderPlan(FALLBACK_PLANS[lastExample], 'Plan de ejemplo precargado: la generación en vivo no está disponible en este momento.');
+    } else {
+      els.planArea.className = 'plan-empty';
+      els.planArea.textContent = 'No se pudo generar el plan en vivo en este momento. Intenta de nuevo en unos segundos, o carga una de las cuentas de ejemplo.';
+    }
+  } finally {
+    els.genBtn.disabled = false;
+    els.genBtn.textContent = 'Generar plan de acción con IA';
+  }
+});
+
+function renderPlan(data, note) {
+  const acciones = Array.isArray(data.acciones) ? data.acciones : [];
+  els.planArea.className = 'plan';
+  els.planArea.innerHTML = `
+    <h3>Próximas acciones</h3>
+    <ol>${acciones.map(a => `<li>${escapeHtml(a)}</li>`).join('')}</ol>
+    <h3>Guion para la próxima llamada</h3>
+    <p>${escapeHtml(data.guion || '')}</p>
+    <h3>Oportunidad de expansión</h3>
+    <p>${escapeHtml(data.oportunidad || '')}</p>
+    <div class="note">${escapeHtml(note)}</div>
+  `;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
