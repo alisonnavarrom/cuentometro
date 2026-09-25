@@ -5,7 +5,7 @@ Herramienta que convierte las señales de una cuenta (uso, satisfacción, soport
 Construida por Alison Navarro para la postulación al rol de Key Account Manager en Alegra.
 
 - **Demo en vivo:** `https://cuentometro.vercel.app`
-- **Video:** `PEGAR-AQUÍ-EL-LINK-DEL-VIDEO`
+- **Video:** `https://drive.google.com/file/d/1l10ZCL7_6U7aDdY00qxErHf2lauTTRfx/view?usp=sharing`
 
 ---
 
